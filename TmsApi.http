@@ -1,10 +1,63 @@
 @TmsApi_HostAddress = http://localhost:5029
 
+###  Weather (default endpoint)
 GET {{TmsApi_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+###. Assessments - no header, expect 401
 GET {{TmsApi_HostAddress}}/api/assessments/results
 Accept: application/json
 
 ###
+
+###. Assessments - with header, expect 200
+GET {{TmsApi_HostAddress}}/api/assessments/results
+Accept: application/json
+X-Training-User: s-001
+
+###
+
+###  Get all enrollments - expect 200 empty array
+GET {{TmsApi_HostAddress}}/api/enrollment
+Accept: application/json
+
+###
+
+### POST first enrollment
+POST {{TmsApi_HostAddress}}/api/enrollment
+Content-Type: application/json
+
+{
+  "studentId": "stu-1",
+  "courseCode": "CS-101"
+}
+
+###
+
+###  POST SAME enrollment again - duplicate test
+POST {{TmsApi_HostAddress}}/api/enrollment
+Content-Type: application/json
+
+{
+  "studentId": "stu-1",
+  "courseCode": "CS-101"
+}
+
+###
+
+###  GET by ID - copy id from response of request 5
+GET {{TmsApi_HostAddress}}/api/enrollment/2aad4d7f
+Accept: application/json
+
+###
+
+
+
+### . DELETE existing 
+### Console: [Information] Deleted enrollment
+DELETE {{TmsApi_HostAddress}}/api/enrollment/2aad4d7f
+
+
+
