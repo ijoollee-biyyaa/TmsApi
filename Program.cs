@@ -1,19 +1,19 @@
 using Microsoft.AspNetCore.Authentication;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-
-builder.Services.AddAuthentication("Training").AddScheme<AuthenticationSchemeOptions,
-TrainingAuthHandler>("Training", null);
+builder.Services.AddAuthentication("Training")
+    .AddScheme<AuthenticationSchemeOptions, TrainingAuthHandler>("Training", null);
 builder.Services.AddAuthorization();
+
 builder.Host.UseDefaultServiceProvider(options =>
 {
-    options.ValidateScopes = true;
+    options.ValidateScopes  = true;
     options.ValidateOnBuild = true;
 });
+
 builder.Services.AddSingleton<EnrollmentStore>();
 builder.Services.AddSingleton<EnrollmentWorker>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
@@ -21,19 +21,35 @@ builder.Services.AddOptions<PaymentOptions>()
     .BindConfiguration("Payments")
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services.AddProblemDetails();
+builder.Services.AddOpenApi();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ── Environment toggle ───
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
+else
+{
+    // Production only — hide stack traces
+    app.UseExceptionHandler("/api/error");
+}
+
+// ── Middleware pipeline ────
 app.UseMiddleware<RequestLoggingMiddleware>();
-app.UseExceptionHandler("/error");
-//app.UseHttpsRedirection();
+app.UseStatusCodePages();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// ── Endpoints ─
 app.MapGet("/api/assessments/results", () => Results.Ok(new
 {
-    courseCode = "CS-101",
-    studentId  = "S-001",
+    courseCode  = "CS-101",
+    studentId   = "S-001",
     letterGrade = "A"
 })).RequireAuthorization();
 
@@ -52,21 +68,42 @@ app.MapPost("/api/enrollment", async (EnrollmentRequest req, IEnrollmentService 
 app.MapGet("/api/enrollment/{id}", async (string id, IEnrollmentService svc) =>
 {
     var record = await svc.GetByIdAsync(id);
-    return record is not null ? Results.Ok(record) : Results.NotFound(new { message = $"Enrollment {id} not found" });
+    return record is not null
+        ? Results.Ok(record)
+        : Results.NotFound(new { message = $"Enrollment {id} not found" });
 });
 
 app.MapDelete("/api/enrollment/{id}", async (string id, IEnrollmentService svc) =>
 {
     var deleted = await svc.DeleteAsync(id);
-    return deleted ? Results.NoContent() : Results.NotFound(new { message = $"Enrollment {id} not found" });
+    return deleted
+        ? Results.NoContent()
+        : Results.NotFound(new { message = $"Enrollment {id} not found" });
 });
-app.Map("/error", () => Results.Problem("An unexpected error occurred, please try again later."));
+
+// Error handler endpoint — returns ProblemDetails
+app.Map("/api/error", (HttpContext ctx) =>
+{
+    return Results.Problem(
+        detail: "An unexpected error occurred.",
+        statusCode: 500
+    );
+});
+
+// Test endpoint — throws to trigger error handler
+app.MapGet("/api/test-error", () =>
+{
+    throw new TmsDatabaseException("Simulated database failure for ProblemDetails testing!");
+});
+
+// Worker smoke test
 app.MapGet("/api/enrollments/worker-smoke", (EnrollmentWorker worker) =>
 {
     worker.ProcessBatch();
     return Results.Ok("processed");
 });
-app.MapControllers();
 
+app.MapControllers();
 app.Run();
+
 public record EnrollmentRequest(string StudentId, string CourseCode);
