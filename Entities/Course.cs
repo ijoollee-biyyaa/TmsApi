@@ -1,0 +1,14 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace TmsApi.Entities;
+
+public class Course
+{
+    [Key]
+    public int Id { get; set; }
+    public required string Code { get; set; }
+    public required string Title { get; set; }
+    public int Capacity { get; set; }
+
+    public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
+}
