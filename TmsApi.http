@@ -87,5 +87,40 @@ GET {{TmsApi_HostAddress}}/api/error
 
 ####
 GET {{TmsApi_HostAddress1}}/api/test-error
-##
 
+###
+GET {{TmsApi_HostAddress}}/api/students
+Accept: application/json
+###
+Get {{TmsApi_HostAddress}}/api/students/ccd45178
+Accept: application/json
+###
+POST {{TmsApi_HostAddress}}/api/students
+Content-Type: application/json
+
+{
+  "id": "s-001",
+  "name": "John Doe",
+  "Age": 26,
+  "GPA" : 3.5
+}
+
+###
+POST {{TmsApi_HostAddress}}/api/course
+Content-Type: application/json
+
+{
+  "Id": "c009",
+  "Code": "C-1100",
+  "Title": "java",
+  "Capacity": 26,
+  "EnrolledCount" : 3
+}
+
+###
+GET {{TmsApi_HostAddress}}/api/course
+Accept: application/json
+
+### 
+GET {{TmsApi_HostAddress}}/api/course/c009
+Accept: application/json

@@ -19,7 +19,7 @@ public class EnrollmentService : IEnrollmentService
 
     public Task<EnrollmentRecord> EnrollAsync(string studentId, string courseCode)
     {
-        // BUG WAS: _store.RecordsValues — missing dot
+        
         var existing = _store.Records.Values
             .FirstOrDefault(e => e.StudentId == studentId && e.CourseCode == courseCode);
 
@@ -33,7 +33,6 @@ public class EnrollmentService : IEnrollmentService
 
         var id = Guid.NewGuid().ToString("N")[..8];
         var record = new EnrollmentRecord(id, studentId, courseCode, DateTime.UtcNow);
-        // BUG WAS: _store[id] = record
         _store.Records[id] = record;
         _logger.LogInformation(
             "Enrolled {StudentId} in {CourseCode} record {EnrollmentId}",
@@ -43,7 +42,7 @@ public class EnrollmentService : IEnrollmentService
 
     public Task<EnrollmentRecord?> GetByIdAsync(string id)
     {
-        // BUG WAS: _store.TryGetValue
+
         _store.Records.TryGetValue(id, out var record);
         if (record is null)
             _logger.LogWarning("Enrollment {EnrollmentId} not found", id);
@@ -59,7 +58,7 @@ public class EnrollmentService : IEnrollmentService
 
     public Task<bool> DeleteAsync(string id)
     {
-        // BUG WAS: _store.Remove
+        
         var removed = _store.Records.Remove(id);
         if (removed)
             _logger.LogInformation("Deleted enrollment {EnrollmentId}", id);

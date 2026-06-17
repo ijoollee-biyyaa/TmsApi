@@ -16,7 +16,13 @@ builder.Host.UseDefaultServiceProvider(options =>
 
 builder.Services.AddSingleton<EnrollmentStore>();
 builder.Services.AddSingleton<EnrollmentWorker>();
+builder.Services.AddSingleton<StudentStore>();
+builder.Services.AddSingleton<CourseStore>();
+builder.Services.AddSingleton<AssessmentStore>();
+builder.Services.AddScoped<IAssessmentService, AssessmentService>();
+builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
+builder.Services.AddScoped<IStudentsService, StudentsService>();
 builder.Services.AddOptions<PaymentOptions>()
     .BindConfiguration("Payments")
     .ValidateDataAnnotations()
