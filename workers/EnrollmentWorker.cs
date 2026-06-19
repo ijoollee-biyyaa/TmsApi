@@ -1,4 +1,6 @@
+using TmsApi.Services;
 public class EnrollmentWorker
+
 {
   //  private readonly IEnrollmentService _enrollmentService;
      private readonly IServiceScopeFactory _factory;

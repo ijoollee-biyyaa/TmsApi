@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TmsApi.Data;
 using TmsApi.Entities;
+namespace TmsApi.Services;
 public interface IEnrollmentService
 {
     Task<Enrollment?> EnrollAsync(int studentId, int courseId);
@@ -70,7 +71,7 @@ public class EnrollmentService(TmsDbContext dbContext, ILogger<EnrollmentService
 
     public async Task<IReadOnlyList<Enrollment>> GetAllAsync()
     {
-        // BUG WAS: _store.Values
+       
        
         return await dbContext.Enrollments.ToListAsync();
     }

@@ -1,6 +1,7 @@
 namespace TmsApi.Controllers;  
 using Microsoft.AspNetCore.Mvc;
 using TmsApi.Entities;
+using TmsApi.Services;
 [ApiController]
 [Route("api/enrollments")]
 public class EnrollmentsController : ControllerBase

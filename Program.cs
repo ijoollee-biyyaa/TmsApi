@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using TmsApi.Data;
+using TmsApi.Entities;
+using TmsApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,13 +17,11 @@ builder.Host.UseDefaultServiceProvider(options =>
     options.ValidateScopes  = true;
     options.ValidateOnBuild = true;
 });
-builder.Services.AddDbContext<TmsDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase")));
-builder.Services.AddSingleton<EnrollmentStore>();
+builder.Services.AddDbContext<TmsDbContext>
+(options => options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase"))
+.LogTo(Console.WriteLine, LogLevel.Information)
+.EnableSensitiveDataLogging());
 builder.Services.AddSingleton<EnrollmentWorker>();
-builder.Services.AddSingleton<StudentStore>();
-builder.Services.AddSingleton<CourseStore>();
-builder.Services.AddSingleton<AssessmentStore>();
-builder.Services.AddScoped<IAssessmentService, AssessmentService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 builder.Services.AddScoped<IStudentsService, StudentsService>();
@@ -53,41 +53,8 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// ── Endpoints ─
-app.MapGet("/api/assessments/results", () => Results.Ok(new
-{
-    courseCode  = "CS-101",
-    studentId   = "S-001",
-    letterGrade = "A"
-})).RequireAuthorization();
 
-app.MapGet("/api/enrollment", async (IEnrollmentService svc) =>
-{
-    var all = await svc.GetAllAsync();
-    return Results.Ok(all);
-});
 
-app.MapPost("/api/enrollment", async (EnrollmentRequest req, IEnrollmentService svc) =>
-{
-    var record = await svc.EnrollAsync(req.StudentId, req.CourseCode);
-    return Results.Created($"/api/enrollment/{record.Id}", record);
-});
-
-app.MapGet("/api/enrollment/{id}", async (string id, IEnrollmentService svc) =>
-{
-    var record = await svc.GetByIdAsync(id);
-    return record is not null
-        ? Results.Ok(record)
-        : Results.NotFound(new { message = $"Enrollment {id} not found" });
-});
-
-app.MapDelete("/api/enrollment/{id}", async (string id, IEnrollmentService svc) =>
-{
-    var deleted = await svc.DeleteAsync(id);
-    return deleted
-        ? Results.NoContent()
-        : Results.NotFound(new { message = $"Enrollment {id} not found" });
-});
 
 // Error handler endpoint — returns ProblemDetails
 app.Map("/api/error", (HttpContext ctx) =>
@@ -112,6 +79,43 @@ app.MapGet("/api/enrollments/worker-smoke", (EnrollmentWorker worker) =>
 });
 
 app.MapControllers();
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<TmsDbContext>();
+    context.Database.Migrate();
+
+    if (!context.Students.Any())
+    {
+        var students = new List<Student>
+        {
+            new() { RegistrationNumber = "TMS-2026-0001", Name = "Alice Smith", GPA = 3.8m, IsActive = true },
+            new() { RegistrationNumber = "TMS-2026-0002", Name = "Bob Jones", GPA = 2.9m, IsActive = true },
+            new() { RegistrationNumber = "TMS-2026-0003", Name = "Charlie Brown", GPA = 3.4m, IsActive = false },
+            new() { RegistrationNumber = "TMS-2026-0004", Name = "Diana Prince", GPA = 3.9m, IsActive = true },
+            new() { RegistrationNumber = "TMS-2026-0005", Name = "Evan Wright", GPA = 2.5m, IsActive = true }
+        };
+        context.Students.AddRange(students);
+
+        var courses = new List<Course>
+        {
+            new() { Code = "CS-101", Title = "Introduction to Computer Science", Capacity = 30 },
+            new() { Code = "CS-201", Title = "Data Structures and Algorithms", Capacity = 25 },
+            new() { Code = "MAT-101", Title = "Calculus I", Capacity = 40 }
+        };
+        context.Courses.AddRange(courses);
+        context.SaveChanges();
+
+        var enrollments = new List<Enrollment>
+        {
+            new() { StudentId = students[0].Id, CourseId = courses[0].Id, Grade = 4.0m },
+            new() { StudentId = students[0].Id, CourseId = courses[1].Id, Grade = 3.6m },
+            new() { StudentId = students[1].Id, CourseId = courses[0].Id, Grade = 2.8m },
+            new() { StudentId = students[3].Id, CourseId = courses[1].Id, Grade = 3.9m }
+        };
+        context.Enrollments.AddRange(enrollments);
+        context.SaveChanges();
+    }
+}
 app.Run();
 
 public record EnrollmentRequest(string StudentId, string CourseCode);

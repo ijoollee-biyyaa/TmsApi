@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using TmsApi.Data;
 using TmsApi.Entities;
+namespace TmsApi.Services ;
 public interface IStudentsService
 {
     Task<Student?> GetById(int id);
     Task<IReadOnlyList<Student>> GetAllAsync();
-    Task<Student> CreateAsync(Student student);
+    Task<Student?> CreateAsync(Student student);
     Task<bool> DeleteAsync(int id);
 }
 
@@ -28,7 +29,7 @@ public class StudentsService(TmsDbContext dbContext, ILogger<StudentsService> lo
         return  stud;
     }
     
-      public async Task<Student> CreateAsync(Student student)
+      public async Task<Student?> CreateAsync(Student student)
     {
         var existingStudent = await dbContext.Students.FirstOrDefaultAsync(s => s.RegistrationNumber == student.RegistrationNumber);
 
@@ -39,7 +40,11 @@ public class StudentsService(TmsDbContext dbContext, ILogger<StudentsService> lo
                 student.RegistrationNumber, existingStudent.Id);
             return existingStudent;
         }
-
+    if(string.IsNullOrWhiteSpace(student.Name) || string.IsNullOrWhiteSpace(student.RegistrationNumber))
+        {
+            logger.LogWarning("student registration rejected: you missed student name or registration number");
+            return null;
+        }
         var newStudent = new Student
         {
             RegistrationNumber = student.RegistrationNumber,

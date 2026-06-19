@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using TmsApi.Entities;
+using TmsApi.Services;
 [ApiController]
 [Route("api/course")]
 public class CourseController : ControllerBase
@@ -32,9 +33,19 @@ public class CourseController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] Course course)
+    public async Task<IActionResult> Create([FromBody] CreateCourseRequest course)
     {
-        var createdCourse = await _courseService.CreateAsync(course);
+        var courses = new Course
+        {
+             Capacity = course.Capacity,
+              Code = course.Code,
+               Title = course.Title
+        };
+        var createdCourse = await _courseService.CreateAsync(courses);
+        if(createdCourse is null)
+        {
+            return BadRequest(new {Message="Regsitration Faild: Course Title or Code is null"});
+        }
         return CreatedAtAction(nameof(GetById), new { id = createdCourse.Id }, createdCourse);
     }
 
@@ -44,4 +55,8 @@ public class CourseController : ControllerBase
         var deleted  = await _courseService.DeleteAsync(id);
         return deleted ? NoContent() : NotFound();
     }
+  public record CreateCourseRequest(
+        string Code,
+        string Title,
+        int Capacity);
 }

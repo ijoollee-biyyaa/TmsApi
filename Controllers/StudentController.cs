@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using TmsApi.Entities;
+using TmsApi.Services;
 
 [ApiController]
 [Route("api/students")]
@@ -33,9 +34,20 @@ public class StudentController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] Student student)
+    public async Task<IActionResult> Create([FromBody] StudentCreateRequest student)
     {
-        var createdStudent = await _studentService.CreateAsync(student);
+        var studRequest = new Student
+        {
+           Name = student.Name,
+           RegistrationNumber = student.RegistrationNumber,
+           GPA = student.GPA,
+           IsActive = true   
+        };
+        var createdStudent = await _studentService.CreateAsync(studRequest);
+        if (createdStudent is null)
+        {
+            return BadRequest(new {Message="Invalid Request data: name or registration number is required"});
+        }
         return CreatedAtAction(nameof(GetById), new { id = createdStudent.Id }, createdStudent);
     }
 
@@ -45,4 +57,6 @@ public class StudentController : ControllerBase
         var deleted  = await _studentService.DeleteAsync(id);
         return deleted ? NoContent() : NotFound();
     }
+    public record StudentCreateRequest (string RegistrationNumber, string Name, decimal GPA, bool IsActive );
 }
+ 

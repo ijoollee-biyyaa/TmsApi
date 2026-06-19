@@ -1,12 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using TmsApi.Data;
 using TmsApi.Entities;
+namespace TmsApi.Services;
 public interface ICourseService
 {
-    Task<Course?> GetById(int code);
+    Task<Course?> GetById(int id);
     Task<IReadOnlyList<Course>> GetAllAsync();
-    Task<Course> CreateAsync(Course course);
-    Task<bool> DeleteAsync(int code);
+    Task<Course?> CreateAsync(Course course);
+    Task<bool> DeleteAsync(int id);
 }
 
 public class CourseService(TmsDbContext dbContext , ILogger<CourseService> logger) : ICourseService
@@ -29,7 +30,7 @@ public class CourseService(TmsDbContext dbContext , ILogger<CourseService> logge
         return  course;
     }
     
-    public async Task<Course> CreateAsync (Course course)
+    public async Task<Course?> CreateAsync (Course course)
     {
        var existingCourse = await dbContext.Courses.FirstOrDefaultAsync(s=>s.Code == course.Code);
 
@@ -40,7 +41,11 @@ public class CourseService(TmsDbContext dbContext , ILogger<CourseService> logge
                 course.Code, existingCourse.Code);
              return existingCourse;
         }
-                
+        if (string.IsNullOrWhiteSpace(course.Title) || string.IsNullOrWhiteSpace(course.Code))
+        {
+            logger.LogWarning("Course registration failed: Course code or Title is missing");
+            return null;
+        } 
               
                 var newCourse = new Course
                 {
@@ -74,5 +79,6 @@ public class CourseService(TmsDbContext dbContext , ILogger<CourseService> logge
         logger.LogInformation("Deleted course {CourseCode}", id);
         return true;
     }
+
 
 }
