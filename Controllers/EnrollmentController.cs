@@ -1,5 +1,6 @@
+namespace TmsApi.Controllers;  
 using Microsoft.AspNetCore.Mvc;
-
+using TmsApi.Entities;
 [ApiController]
 [Route("api/enrollments")]
 public class EnrollmentsController : ControllerBase
@@ -23,7 +24,7 @@ public async Task<IActionResult> GetAll()
 
 
 [HttpGet("{id}")]
-public async Task<IActionResult> GetById(string id)
+public async Task<IActionResult> GetById(int id)
 {
     var record =
         await _enrollmentService.GetByIdAsync(id);
@@ -37,14 +38,18 @@ public async Task<IActionResult> GetById(string id)
 [HttpPost]
 public async Task<IActionResult> Create([FromBody] CreateEnrollmentRequest request)
 {
-    var record = await _enrollmentService.EnrollAsync(request.StudentId,  request.CourseCode);
+    var record = await _enrollmentService.EnrollAsync(request.StudentId,  request.CourseId);
+if (record is null)
+        {
+            return BadRequest(new { Message = "Student or course not found." });
+        }
 
     return CreatedAtAction(nameof(GetById), new { id = record.Id }, record);
 }
 
 
 [HttpDelete("{id}")]
-public async Task<IActionResult> Delete(string id)
+public async Task<IActionResult> Delete(int id)
 {
     var deleted =
         await _enrollmentService.DeleteAsync(id);
@@ -55,8 +60,8 @@ public async Task<IActionResult> Delete(string id)
 }
 
 public record CreateEnrollmentRequest(
-    string StudentId,
-    string CourseCode);
+    int StudentId,
+    int CourseId);
 
 
 }

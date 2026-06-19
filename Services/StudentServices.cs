@@ -1,77 +1,74 @@
+using Microsoft.EntityFrameworkCore;
+using TmsApi.Data;
+using TmsApi.Entities;
 public interface IStudentsService
 {
-    Task<Student?> GetById(string id);
+    Task<Student?> GetById(int id);
     Task<IReadOnlyList<Student>> GetAllAsync();
     Task<Student> CreateAsync(Student student);
-    Task<bool> DeleteAsync(string id);
+    Task<bool> DeleteAsync(int id);
 }
 
-public class StudentsService : IStudentsService
+public class StudentsService(TmsDbContext dbContext, ILogger<StudentsService> logger) : IStudentsService
 {
-    private readonly StudentStore _students;
-    private readonly ILogger<StudentsService> _logger;
-
-    public StudentsService(StudentStore students, ILogger<StudentsService> logger)
-    {
-        _students = students;
-        _logger = logger;
-    }   
+    
     
     public async Task<IReadOnlyList<Student>> GetAllAsync()
     {
-        IReadOnlyList<Student> students =  _students.Students.Values.ToList();
+        IReadOnlyList<Student> students =  dbContext.Students.ToList();
         return await Task.FromResult(students);
         
     }
     
-    public   Task<Student?> GetById(string id)
+    public  async Task<Student?> GetById(int id)
     {
-        _students.Students.TryGetValue(id, out var student);
-        if (student is null)
-        _logger.LogWarning("Stuent {StudentId} not found", id);
-        return  Task.FromResult(student);
+       var stud = await dbContext.Students.FindAsync(id);
+        if (stud is null)
+        logger.LogWarning("Student {StudentId} not found", id);
+        return  stud;
     }
     
-    public  Task<Student> CreateAsync (Student student)
+      public async Task<Student> CreateAsync(Student student)
     {
-       var existingStudents = _students.Students.Values.FirstOrDefault(s=>s.Id == student.Id && s.Name == student.Name);
+        var existingStudent = await dbContext.Students.FirstOrDefaultAsync(s => s.RegistrationNumber == student.RegistrationNumber);
 
-       if(existingStudents is not null)
+        if (existingStudent is not null)
         {
-            _logger.LogWarning(
-                "Duplicate student attempt {StudentId}- {StudentName}  already exists (record {StudentId})",
-                student.Id, existingStudents.Name, existingStudents.Id);
-             return Task.FromResult(existingStudents);
+            logger.LogWarning(
+                "Duplicate registration attempt {RegistrationNumber} — already exists as student {StudentId}",
+                student.RegistrationNumber, existingStudent.Id);
+            return existingStudent;
         }
-                
-                var id = Guid.NewGuid().ToString("N")[..8];
-                var newStudent = new Student
-                {
-                    Id = id,
-                    Name = student.Name,
-                    Age = student.Age,
-                    GPA = student.GPA
-                };
-          _students.Students[id] = newStudent;
-          _logger.LogInformation(
-            "Created student {StudentId}- {StudentName} record {StudentId}",
-            newStudent.Id, newStudent.Name, newStudent.Id);
 
-            return Task.FromResult(newStudent);
-        }
+        var newStudent = new Student
+        {
+            RegistrationNumber = student.RegistrationNumber,
+            Name = student.Name,
+            GPA = student.GPA,
+            IsActive = true
+        };
+
+        dbContext.Students.Add(newStudent);
+        await dbContext.SaveChangesAsync();
+
+        logger.LogInformation("Created student {StudentId} — {StudentName}", newStudent.Id, newStudent.Name);
+
+        return newStudent;
+    }
 
     
-       public Task<bool> DeleteAsync(string id)
+       public async Task<bool> DeleteAsync(int id)
     {
-        _students.Students.TryGetValue(id, out var student);
-        if(student is null)
+      var studentId = await dbContext.Students.FindAsync(id);
+        if(studentId is null)
         {
-            _logger.LogWarning("Student {StudentId} not found", id);
-            return Task.FromResult(false);
+            logger.LogWarning("Student {StudentId} not found", id);
+            return false;
         }
-        _students.Students.Remove(id);
-        _logger.LogInformation("Deleted student {StudentId}", id);
-        return Task.FromResult(true);
+        dbContext.Students.Remove(studentId);
+        await dbContext.SaveChangesAsync();
+        logger.LogInformation("Deleted student {StudentId}", id);
+        return true;
     }
 
 }

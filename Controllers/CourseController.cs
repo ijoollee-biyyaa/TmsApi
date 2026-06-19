@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
-
+using TmsApi.Entities;
 [ApiController]
 [Route("api/course")]
 public class CourseController : ControllerBase
 {
     
     private readonly ICourseService _courseService;
-     private readonly ILogger<StudentController> _logger;   
-    public CourseController(ICourseService courseService, ILogger<StudentController> logger)
+     private readonly ILogger<CourseController> _logger;   
+    public CourseController(ICourseService courseService, ILogger<CourseController> logger)
     {
         _courseService = courseService;
         _logger = logger;
@@ -21,11 +21,11 @@ public class CourseController : ControllerBase
         return Ok(course);
     }
 
-    [HttpGet("{code}")]
-    public async Task<IActionResult> GetById( string code)
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById( int id)
     {
         
-    var course = await _courseService.GetById(code);
+    var course = await _courseService.GetById(id);
         return course != null
             ? Ok(course)
             : NotFound();
@@ -35,13 +35,13 @@ public class CourseController : ControllerBase
     public async Task<IActionResult> Create([FromBody] Course course)
     {
         var createdCourse = await _courseService.CreateAsync(course);
-        return CreatedAtAction(nameof(GetById), new { code = createdCourse.Code }, createdCourse);
+        return CreatedAtAction(nameof(GetById), new { id = createdCourse.Id }, createdCourse);
     }
 
-    [HttpDelete("{code}")]
-    public async Task<IActionResult> Delete([FromRoute] string code)
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete([FromRoute] int id)
     {
-        var deleted  = await _courseService.DeleteAsync(code);
+        var deleted  = await _courseService.DeleteAsync(id);
         return deleted ? NoContent() : NotFound();
     }
 }

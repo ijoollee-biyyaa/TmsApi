@@ -1,80 +1,78 @@
+using Microsoft.EntityFrameworkCore;
+using TmsApi.Data;
+using TmsApi.Entities;
 public interface ICourseService
 {
-    Task<Course?> GetById(string code);
+    Task<Course?> GetById(int code);
     Task<IReadOnlyList<Course>> GetAllAsync();
     Task<Course> CreateAsync(Course course);
-    Task<bool> DeleteAsync(string code);
+    Task<bool> DeleteAsync(int code);
 }
 
-public class CourseService : ICourseService
+public class CourseService(TmsDbContext dbContext , ILogger<CourseService> logger) : ICourseService
 {
-    private readonly CourseStore _course;
-    private readonly ILogger<CourseService> _logger;
-
-    public CourseService(CourseStore course, ILogger<CourseService> logger)
-    {
-        _course = course;
-        _logger = logger;
-    }   
+    
+  
     
     public async Task<IReadOnlyList<Course>> GetAllAsync()
     {
-        IReadOnlyList<Course> course =  _course.Courses.Values.ToList();
-        return await Task.FromResult(course);
+       
+        return await dbContext.Courses.ToListAsync();
         
     }
     
-    public  Task<Course?> GetById(string code)
+    public async  Task<Course?> GetById(int id)
     {
-        _course.Courses.TryGetValue(code, out var course);
+       var course = await dbContext.Courses.FindAsync(id);
         if (course is null)
-        _logger.LogWarning("Course {CourseCode} not found", code);
-        return  Task.FromResult(course);
+        logger.LogWarning("Course {CourseCode} not found", id);
+        return  course;
     }
     
-    public  Task<Course> CreateAsync (Course course)
+    public async Task<Course> CreateAsync (Course course)
     {
-       var existingCourse = _course.Courses.Values.FirstOrDefault(s=>s.Code == course.Code);
+       var existingCourse = await dbContext.Courses.FirstOrDefaultAsync(s=>s.Code == course.Code);
 
        if(existingCourse is not null)
         {
-            _logger.LogWarning(
+            logger.LogWarning(
                 "Duplicate Course attempt {CourseCode}- already exists (record {CourseCode})",
                 course.Code, existingCourse.Code);
-             return Task.FromResult(existingCourse);
+             return existingCourse;
         }
                 
-                var code = Guid.NewGuid().ToString("N")[..8];
+              
                 var newCourse = new Course
                 {
                    
-                   Code = code,
+                   Code = course.Code,
                    Capacity = course.Capacity,
-                   EnrolledCount = course.EnrolledCount  ,
                    Title = course.Title
                      
 
                 };
-          _course.Courses[code] = newCourse;
-          _logger.LogInformation(
-            "Created course {CourseId}",
-            newCourse.Code);
+            dbContext.Courses.Add(newCourse);
+            await dbContext.SaveChangesAsync();
+          logger.LogInformation(
+            "Created course {CourseId}-{courseCode}",
+            newCourse.Code,newCourse.Code);
 
-            return Task.FromResult(newCourse);
+            return newCourse;
         }
 
     
-       public Task<bool> DeleteAsync(string code)
+       public async Task<bool> DeleteAsync(int id)
     {
-        _course.Courses.TryGetValue(code, out var course);
+           var course = await dbContext.Courses.FindAsync(id);
         if(course is null)
         {
-            _logger.LogWarning("Course {Coursecode} not found", code);
-            return Task.FromResult(false);
+            logger.LogWarning("Course {Coursecode} not found", id);
+            return false;
         }
-        _course.Courses.Remove(code);
-        _logger.LogInformation("Deleted course {CourseCode}", code);
-        return Task.FromResult(true);
+      dbContext.Courses.Remove(course);
+      await dbContext.SaveChangesAsync();
+        logger.LogInformation("Deleted course {CourseCode}", id);
+        return true;
     }
 
 }

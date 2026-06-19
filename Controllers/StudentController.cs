@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using TmsApi.Entities;
 
 [ApiController]
 [Route("api/students")]
@@ -22,7 +23,7 @@ public class StudentController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetById(int id)
     {
         
     var students = await _studentService.GetById(id);
@@ -39,7 +40,7 @@ public class StudentController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(string id)
+    public async Task<IActionResult> Delete(int id)
     {
         var deleted  = await _studentService.DeleteAsync(id);
         return deleted ? NoContent() : NotFound();
