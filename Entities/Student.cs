@@ -1,11 +1,10 @@
 
-using System.ComponentModel.DataAnnotations;
 
 namespace TmsApi.Entities;
 
 public class Student
 {
-    [Key]
+
     public int Id { get; set; }
     public required string RegistrationNumber { get; set; }
     public required string Name { get; set; }

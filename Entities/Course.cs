@@ -1,11 +1,8 @@
-using System.ComponentModel.DataAnnotations;
-using System.Runtime.ConstrainedExecution;
-
 namespace TmsApi.Entities;
 
 public class Course
 {
-    [Key]
+
     public int Id { get; set; }
     public required string Code { get; set; }
     public required string Title { get; set; }

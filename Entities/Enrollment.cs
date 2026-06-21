@@ -1,11 +1,11 @@
 using System;
-using System.ComponentModel.DataAnnotations;
+
 
 namespace TmsApi.Entities;
 
 public class Enrollment
 {
-    [Key]
+
     public int Id { get; set; }
     public int StudentId { get; set; }
     public int CourseId { get; set; }

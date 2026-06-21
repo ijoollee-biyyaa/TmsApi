@@ -6,6 +6,8 @@ public interface ICourseService
 {
     Task<Course?> GetById(int id);
     Task<IReadOnlyList<Course>> GetAllAsync();
+    Task<IList<Course>>GetPagedResult(int page, int pageSize, CancellationToken  cancellationToken);
+   
     Task<Course?> CreateAsync(Course course);
     Task<bool> DeleteAsync(int id);
 }
@@ -13,7 +15,16 @@ public interface ICourseService
 public class CourseService(TmsDbContext dbContext , ILogger<CourseService> logger) : ICourseService
 {
     
-  
+    public async Task<IList<Course>> GetPagedResult(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        var course = await dbContext.Courses
+        .OrderBy(e=>e.Title)
+        .Skip((1-page) * pageSize)
+        .Take(pageSize)
+        .ToListAsync(cancellationToken);
+        return course;
+    }
+
     
     public async Task<IReadOnlyList<Course>> GetAllAsync()
     {

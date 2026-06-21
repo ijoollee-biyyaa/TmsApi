@@ -7,13 +7,22 @@ public interface IEnrollmentService
     Task<Enrollment?> EnrollAsync(int studentId, int courseId);
     Task<Enrollment?> GetByIdAsync(int id);
     Task<IReadOnlyList<Enrollment>> GetAllAsync();
+    Task<IList<Enrollment>>GetPagedResult(int page, int pageSize, CancellationToken  cancellationToken);
     Task<bool> DeleteAsync(int id);
 }
 
 public class EnrollmentService(TmsDbContext dbContext, ILogger<EnrollmentService> logger) : IEnrollmentService
 {
  
-
+   public async Task<IList<Enrollment>> GetPagedResult(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        var enrollement = await dbContext.Enrollments
+        .OrderByDescending(e=>e.EnrolledAt)
+        .Skip((1-page) * pageSize)
+        .Take(pageSize)
+        .ToListAsync(cancellationToken);
+        return enrollement;
+    }
     public async Task<Enrollment?> EnrollAsync(int studentId, int courseId)
     {
         
@@ -91,5 +100,7 @@ public class EnrollmentService(TmsDbContext dbContext, ILogger<EnrollmentService
            logger.LogInformation("Deleted enrollment {EnrollmentId}", id);
         return true;
     }
+
+ 
 }
 

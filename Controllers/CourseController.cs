@@ -14,7 +14,12 @@ public class CourseController : ControllerBase
         _logger = logger;
     }
    
-
+[HttpGet("paged")]
+public async Task<IActionResult> GetCoursePaged(int page, int pageSize, CancellationToken cancellationToken =default)
+    {
+        var courses = await _courseService.GetPagedResult(page, pageSize, cancellationToken);
+        return Ok(courses);
+    }
    [HttpGet]
    public async Task<IActionResult> GetAll()
     {

@@ -1,35 +1,49 @@
 using Microsoft.EntityFrameworkCore;
 using TmsApi.Data;
 using TmsApi.Entities;
-namespace TmsApi.Services ;
+namespace TmsApi.Services;
+
 public interface IStudentsService
 {
     Task<Student?> GetById(int id);
     Task<IReadOnlyList<Student>> GetAllAsync();
+    Task<List<Student>> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken);
     Task<Student?> CreateAsync(Student student);
     Task<bool> DeleteAsync(int id);
 }
 
 public class StudentsService(TmsDbContext dbContext, ILogger<StudentsService> logger) : IStudentsService
 {
-    
-    
+
+
+
+    public async Task<List<Student>> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken)
+    {
+
+        var students = await dbContext.Students
+        .OrderBy(s => s.Name)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .ToListAsync(cancellationToken);
+        return students ?? new List<Student>();
+    }
+
     public async Task<IReadOnlyList<Student>> GetAllAsync()
     {
-        IReadOnlyList<Student> students =  dbContext.Students.ToList();
+        IReadOnlyList<Student> students = dbContext.Students.ToList();
         return await Task.FromResult(students);
-        
+
     }
-    
-    public  async Task<Student?> GetById(int id)
+
+    public async Task<Student?> GetById(int id)
     {
-       var stud = await dbContext.Students.FindAsync(id);
+        var stud = await dbContext.Students.FindAsync(id);
         if (stud is null)
-        logger.LogWarning("Student {StudentId} not found", id);
-        return  stud;
+            logger.LogWarning("Student {StudentId} not found", id);
+        return stud;
     }
-    
-      public async Task<Student?> CreateAsync(Student student)
+
+    public async Task<Student?> CreateAsync(Student student)
     {
         var existingStudent = await dbContext.Students.FirstOrDefaultAsync(s => s.RegistrationNumber == student.RegistrationNumber);
 
@@ -40,7 +54,7 @@ public class StudentsService(TmsDbContext dbContext, ILogger<StudentsService> lo
                 student.RegistrationNumber, existingStudent.Id);
             return existingStudent;
         }
-    if(string.IsNullOrWhiteSpace(student.Name) || string.IsNullOrWhiteSpace(student.RegistrationNumber))
+        if (string.IsNullOrWhiteSpace(student.Name) || string.IsNullOrWhiteSpace(student.RegistrationNumber))
         {
             logger.LogWarning("student registration rejected: you missed student name or registration number");
             return null;
@@ -61,11 +75,11 @@ public class StudentsService(TmsDbContext dbContext, ILogger<StudentsService> lo
         return newStudent;
     }
 
-    
-       public async Task<bool> DeleteAsync(int id)
+
+    public async Task<bool> DeleteAsync(int id)
     {
-      var studentId = await dbContext.Students.FindAsync(id);
-        if(studentId is null)
+        var studentId = await dbContext.Students.FindAsync(id);
+        if (studentId is null)
         {
             logger.LogWarning("Student {StudentId} not found", id);
             return false;

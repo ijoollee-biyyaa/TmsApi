@@ -73,4 +73,20 @@ public class ReportingController(TmsDbContext context) : ControllerBase
 
         return Ok(list);
     }
+//top 5 course
+    [HttpGet("top5-courses")]
+    public async Task<IActionResult> GetTop5(CancellationToken cancelationToken)
+    {
+        var list = await context.Enrollments
+        .GroupBy(s=> s.Course.Title)
+        .Select(g=> new
+        {
+            Course = g.Key,
+            EnrollmentCount = g.Count()
+        }).OrderByDescending(x=>x.EnrollmentCount)
+        .Take(5)
+        .ToListAsync();
+        return Ok(list);
+    }
+  
 }
