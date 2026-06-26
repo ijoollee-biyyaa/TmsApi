@@ -10,12 +10,47 @@ public interface IStudentsService
     Task<List<Student>> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken);
     Task<Student?> CreateAsync(Student student);
     Task<bool> DeleteAsync(int id);
+    Task DemonstrateN1Async(CancellationToken cancellationToken);
+    Task<List<object>> GetEnrollmentReportAsync(CancellationToken cancellationToken);
+    Task<Student?> UpdateAsync(int id, Student request, CancellationToken cancellationToken);
+    Task BulkArchiveEnrollmentsAsync(DateTime cutoff, CancellationToken cancellationToken);
 }
+
 
 public class StudentsService(TmsDbContext dbContext, ILogger<StudentsService> logger) : IStudentsService
 {
 
 
+
+
+    public async Task DemonstrateN1Async(CancellationToken cancellationToken)
+    {
+        var students = await dbContext.Students.AsNoTracking().ToListAsync(cancellationToken);
+        foreach (var s in students)
+        {
+            var count = await dbContext.Enrollments
+                .AsNoTracking()
+                .CountAsync(e => e.StudentId == s.Id, cancellationToken);
+            logger.LogInformation("{StudentName}: {Count} enrollments", s.Name, count);
+        }
+    }
+
+public async Task<List<object>> GetEnrollmentReportAsync(CancellationToken cancellationToken)
+{
+    var report = await dbContext.Students
+        .AsNoTracking()
+        .Select(s => new
+        {
+            s.Name,
+            EnrollmentCount = s.Enrollments.Count
+        })
+        .ToListAsync(cancellationToken);
+
+    foreach (var r in report)
+        logger.LogInformation("{StudentName}: {Count} enrollments", r.Name, r.EnrollmentCount);
+
+    return report.Cast<object>().ToList();
+}
 
     public async Task<List<Student>> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken)
     {
@@ -34,6 +69,8 @@ public class StudentsService(TmsDbContext dbContext, ILogger<StudentsService> lo
         return await Task.FromResult(students);
 
     }
+
+
 
     public async Task<Student?> GetById(int id)
     {
@@ -68,6 +105,7 @@ public class StudentsService(TmsDbContext dbContext, ILogger<StudentsService> lo
         };
 
         dbContext.Students.Add(newStudent);
+        dbContext.Entry(newStudent).Property("LastUpdated").CurrentValue = DateTime.UtcNow;
         await dbContext.SaveChangesAsync();
 
         logger.LogInformation("Created student {StudentId} — {StudentName}", newStudent.Id, newStudent.Name);
@@ -84,10 +122,32 @@ public class StudentsService(TmsDbContext dbContext, ILogger<StudentsService> lo
             logger.LogWarning("Student {StudentId} not found", id);
             return false;
         }
-        dbContext.Students.Remove(studentId);
+       // dbContext.Students.Remove(studentId);
+       studentId.IsDeleted = true;
         await dbContext.SaveChangesAsync();
-        logger.LogInformation("Deleted student {StudentId}", id);
+        logger.LogInformation("Soft Deleted student {StudentId}", id);
         return true;
     }
+
+    public async Task<Student?> UpdateAsync(int id, Student request, CancellationToken cancellationToken)
+{
+    var student = await dbContext.Students.FindAsync(id);
+    if (student is null) return null;
+
+    student.Name = request.Name;
+    student.GPA = request.GPA;
+    
+    dbContext.Entry(student).Property("LastUpdated").CurrentValue = DateTime.UtcNow;
+    
+    await dbContext.SaveChangesAsync(cancellationToken);
+    return student;
+}
+
+public async Task BulkArchiveEnrollmentsAsync(DateTime cutoff, CancellationToken cancellationToken)
+{
+    await dbContext.Enrollments
+        .Where(e => e.EnrolledAt < cutoff && !e.IsArchived)
+        .ExecuteUpdateAsync(s => s.SetProperty(e => e.IsArchived, true), cancellationToken);
+}
 
 }

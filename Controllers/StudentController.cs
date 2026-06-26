@@ -17,7 +17,20 @@ public class StudentController : ControllerBase
 
 
 
+[HttpGet("n1-demo")]
+public async Task<IActionResult> DemonstrateN1(CancellationToken cancellationToken)
+{
+    await _studentService.DemonstrateN1Async(cancellationToken);
+    return Ok("Check SQL log for N+1 queries");
+}
 
+
+[HttpGet("enrollment-report")]
+public async Task<IActionResult> GetEnrollmentReport(CancellationToken cancellationToken)
+{
+    var report = await _studentService.GetEnrollmentReportAsync(cancellationToken);
+    return Ok(report);
+}
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -62,11 +75,33 @@ public class StudentController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = createdStudent.Id }, createdStudent);
     }
 
+[HttpPut("{id}")]
+public async Task<IActionResult> Update(int id, [FromBody] StudentCreateRequest request, CancellationToken cancellationToken)
+{
+    var studentRequest = new Student
+    {
+        Name = request.Name,
+        RegistrationNumber = request.RegistrationNumber,
+        GPA = request.GPA,
+        IsActive = request.IsActive
+    };
+    
+    var updated = await _studentService.UpdateAsync(id, studentRequest, cancellationToken);
+    return updated is null ? NotFound() : Ok(updated);
+}
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
         var deleted = await _studentService.DeleteAsync(id);
         return deleted ? NoContent() : NotFound();
     }
+
+    [HttpPost("enrollments/archive")]
+public async Task<IActionResult> BulkArchive([FromQuery] DateTime cutoff, CancellationToken cancellationToken)
+{
+    await _studentService.BulkArchiveEnrollmentsAsync(cutoff, cancellationToken);
+    return Ok("Enrollments archived successfully");
+}
     public record StudentCreateRequest(string RegistrationNumber, string Name, decimal GPA, bool IsActive);
 }

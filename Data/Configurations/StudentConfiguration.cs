@@ -18,5 +18,9 @@ public class StudentConfiguration : IEntityTypeConfiguration<Student>
       .HasMaxLength(200);
       builder.Property(s=>s.GPA)
       .HasColumnType("decimal(3,2)");
+      builder.HasQueryFilter(s=>!s.IsDeleted);
+      builder.Property<DateTime>("LastUpdated");
+      builder.Property(s=>s.Version).IsRowVersion();
+     
     }
 }
