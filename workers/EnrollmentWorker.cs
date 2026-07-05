@@ -13,8 +13,8 @@ public class EnrollmentWorker
     {
         using var scope = _factory.CreateScope();
         var svc = scope.ServiceProvider.GetRequiredService<IEnrollmentService>();
-        var record = svc.GetAllAsync().Result;
-        Console.WriteLine($"EnrollmentWorker: Processed {record.Count}records");
+       // var record = svc.GetAllAsync().Result;
+        //Console.WriteLine($"EnrollmentWorker: Processed {record.Count}records");
     }
 
    

@@ -12,7 +12,7 @@ public class CourseConfiguration : IEntityTypeConfiguration<Course>
 
         builder.Property(c => c.Code)
             .IsRequired()
-            .HasMaxLength(20);
+            .HasMaxLength(10);
 
         builder.HasIndex(c => c.Code)
             .IsUnique();
