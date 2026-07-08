@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using TmsApi.Dtos;
 using TmsApi.Services;
 
@@ -15,6 +16,14 @@ public class CoursesController(ICourseService courseService) : ControllerBase
         return course is not null ? Ok(course) : NotFound();
     }
 
+[HttpGet]
+public async Task<IActionResult> GetCourses(
+    [FromQuery] PagedRequest request, CancellationToken ct)
+{
+    var result = await courseService.GetCoursesAsync(request, ct);
+    return Ok(result);
+}
+
     [HttpPost]
     public async Task<IActionResult> CreateCourse(CreateCourseRequest request, CancellationToken ct)
     {
@@ -28,5 +37,20 @@ public class CoursesController(ICourseService courseService) : ControllerBase
 
         var result = await courseService.CreateAsync(request, ct);
         return CreatedAtAction(nameof(GetCourseById), new { id = result.Id }, result);
+
+    }
+
+    [HttpPut("{id:int}",Name =nameof(GetCourseById))]
+    public async Task<IActionResult> UpdateCourse(int id, CreateCourseRequest request, CancellationToken ct)
+    {
+        if(await courseService.CodeExistUpdateAsync(id, request.Code, ct))
+        return Conflict(new ProblemDetails
+        {
+           Title = "Course code already exists",
+                Detail = $"A course with code '{request.Code}' is already registered.",
+                Status = StatusCodes.Status409Conflict
+        });
+        var course = courseService.UpdateCourseAsync(id, request,ct);
+        return course is null ? NotFound() : NoContent();
     }
 }
