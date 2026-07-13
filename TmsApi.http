@@ -1,10 +1,126 @@
 @TmsApi_HostAddress = http://localhost:5029
+@TmsApi_HostAddress1 = http://localhost:5000
 
+###  Weather (default endpoint)
 GET {{TmsApi_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+###. Assessments - no header, expect 401
 GET {{TmsApi_HostAddress}}/api/assessments/results
 Accept: application/json
 
 ###
+
+###. Assessments - with header, expect 200
+GET {{TmsApi_HostAddress}}/api/assessments/results
+Accept: application/json
+X-Training-User: s-001
+
+###
+
+###  Get all enrollments - expect 200 empty array
+GET {{TmsApi_HostAddress}}/api/enrollment
+Accept: application/json
+
+###
+
+### POST first enrollment
+POST {{TmsApi_HostAddress}}/api/enrollment
+Content-Type: application/json
+
+{
+  "studentId": "stu-1",
+  "courseCode": "CS-101"
+}
+
+###
+
+###  POST SAME enrollment again - duplicate test
+POST {{TmsApi_HostAddress}}/api/enrollment
+Content-Type: application/json
+
+{
+  "studentId": "stu-1",
+  "courseCode": "CS-101"
+}
+
+###
+
+###  GET by ID - copy id from response of request 5
+GET {{TmsApi_HostAddress}}/api/enrollment/064c13bc
+Accept: application/json
+
+###
+
+
+
+### . DELETE existing 
+### Console: [Information] Deleted enrollment
+DELETE {{TmsApi_HostAddress}}/api/enrollment/2aad4d7f
+
+
+
+### running using controller, expect 200
+GET {{TmsApi_HostAddress}}/api/enrollments
+Accept: application/json
+
+
+#### running controller for post, expect 201
+POST {{TmsApi_HostAddress}}/api/enrollments
+Content-Type: application/json
+
+{
+  "studentId": "stu-2",
+  "courseCode": "CS-102"
+}
+
+### running controller for get by id, expect 200
+GET {{TmsApi_HostAddress}}/api/enrollments/f6b13e5a
+
+### running controller for delete, expect 204
+DELETE {{TmsApi_HostAddress}}/api/enrollments/5a074791
+
+### Test problem details
+GET {{TmsApi_HostAddress}}/api/error
+
+####
+GET {{TmsApi_HostAddress1}}/api/test-error
+
+###
+GET {{TmsApi_HostAddress}}/api/students
+Accept: application/json
+###
+Get {{TmsApi_HostAddress}}/api/students/ccd45178
+Accept: application/json
+###
+POST {{TmsApi_HostAddress}}/api/students
+Content-Type: application/json
+
+{
+  "id": "s-001",
+  "name": "John Doe",
+  "Age": 26,
+  "GPA" : 3.5
+}
+
+###
+POST {{TmsApi_HostAddress}}/api/course
+Content-Type: application/json
+
+{
+  "Id": "c009",
+  "Code": "C-1100",
+  "Title": "java",
+  "Capacity": 26,
+  "EnrolledCount" : 3
+}
+
+###
+GET {{TmsApi_HostAddress}}/api/course
+Accept: application/json
+
+### 
+GET {{TmsApi_HostAddress}}/api/course/c009
+Accept: application/json
