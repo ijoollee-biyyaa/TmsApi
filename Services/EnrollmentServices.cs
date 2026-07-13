@@ -3,21 +3,33 @@ using TmsApi.Data;
 using TmsApi.Entities;
 using TmsApi.Dtos;
 namespace TmsApi.Services;
+
 public interface IEnrollmentService
 {
-   Task<EnrollmentResponseDto?> GetByIdAsync(int courseId, int id, CancellationToken ct);
+    Task<EnrollmentResponseDto?> GetByIdAsync(int courseId, int id, CancellationToken ct);
     Task<EnrollmentResponseDto> CreateAsync(int courseId, EnrollStudentRequest request, CancellationToken ct);
+    Task<List<EnrollmentResponseDto>> GetByCourseAsync(int courseId, CancellationToken ct);
 }
 
 public class EnrollmentService(TmsDbContext dbContext, ILogger<EnrollmentService> logger) : IEnrollmentService
 {
- 
-public Task<EnrollmentResponseDto?> GetByIdAsync(int courseId, int id, CancellationToken ct) =>
+
+    public Task<EnrollmentResponseDto?> GetByIdAsync(int courseId, int id, CancellationToken ct) =>
+            dbContext.Enrollments
+                .AsNoTracking()
+                .Where(e => e.Id == id && e.CourseId == courseId)
+                .Select(e => new EnrollmentResponseDto(e.Id, e.CourseId, e.StudentId, e.EnrolledAt))
+                .FirstOrDefaultAsync(ct);
+
+
+    public Task<List<EnrollmentResponseDto>> GetByCourseAsync(int courseId, CancellationToken ct) =>
         dbContext.Enrollments
             .AsNoTracking()
-            .Where(e => e.Id == id && e.CourseId == courseId)
+            .Where(e => e.CourseId == courseId)
             .Select(e => new EnrollmentResponseDto(e.Id, e.CourseId, e.StudentId, e.EnrolledAt))
-            .FirstOrDefaultAsync(ct);
+            .ToListAsync(ct);
+
+
 
     public async Task<EnrollmentResponseDto> CreateAsync(int courseId, EnrollStudentRequest request, CancellationToken ct)
     {
@@ -32,9 +44,9 @@ public Task<EnrollmentResponseDto?> GetByIdAsync(int courseId, int id, Cancellat
         logger.LogInformation("Enrolled student {StudentId} into course {CourseId}", request.StudentId, courseId);
         return (await GetByIdAsync(courseId, enrollment.Id, ct))!;
     }
-   
 
 
- 
+
+
 }
 

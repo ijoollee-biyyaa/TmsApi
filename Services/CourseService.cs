@@ -10,8 +10,9 @@ public interface ICourseService
     Task<CourseResponseDto?> GetByIdAsync(int id, CancellationToken ct);
     Task<CourseResponseDto> CreateAsync(CreateCourseRequest request, CancellationToken ct);
     Task<bool> CodeExistsAsync(string code, CancellationToken ct);
-    Task<CourseResponseDto?> UpdateCourseAsync(int id, CreateCourseRequest request, CancellationToken ct);
+    Task<bool?> UpdateCourseAsync(int id, CreateCourseRequest request, CancellationToken ct);
     Task<bool> CodeExistUpdateAsync(int id, string code, CancellationToken ct);
+    Task<bool> DeleteCourseAsync(int id, CancellationToken ct);
 }
 
 public class CourseService(TmsDbContext dbContext, ILogger<CourseService> logger) : ICourseService
@@ -91,7 +92,7 @@ public class CourseService(TmsDbContext dbContext, ILogger<CourseService> logger
 }
 
 
-    public async Task<CourseResponseDto?> UpdateCourseAsync(int id, CreateCourseRequest request, CancellationToken ct)
+    public async Task<bool?> UpdateCourseAsync(int id, CreateCourseRequest request, CancellationToken ct)
     {
    var courses = await dbContext.Courses.FirstOrDefaultAsync(c=> c.Id == id);
         if(courses is null) return null;
@@ -101,12 +102,19 @@ public class CourseService(TmsDbContext dbContext, ILogger<CourseService> logger
         courses.MaxCapacity = request.MaxCapacity;
 
         await dbContext.SaveChangesAsync(ct);
-       return (await GetByIdAsync(courses.Id, ct));
+       return true;
     }
 
     public async Task<bool> CodeExistUpdateAsync(int id, string code, CancellationToken ct) =>
     await dbContext.Courses.AnyAsync(c=>c.Code == code && c.Id != id, ct);
-    
-        
-    
+
+    public async Task<bool> DeleteCourseAsync(int id, CancellationToken ct)
+    {
+        var course = await dbContext.Courses.FirstOrDefaultAsync(c => c.Id == id, ct);
+        if(course is null) return false;
+
+        dbContext.Courses.Remove(course);
+        await dbContext.SaveChangesAsync(ct);
+        return true;
+    }
 }
