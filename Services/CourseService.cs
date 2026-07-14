@@ -88,6 +88,7 @@ public class CourseService(TmsDbContext dbContext, ILogger<CourseService> logger
         TotalCount = totalCount,
         Page = request.Page,
         PageSize = request.PageSize
+        
     };
 }
 

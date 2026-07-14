@@ -24,7 +24,7 @@ public interface IStudentsService
     Task<StudentResponseDto> CreateAsync(CreateStudentRequest request, CancellationToken ct);
     Task<bool> RegistrationNumberExistsAsync(string registrationNumber, CancellationToken ct);
     Task<bool> RegistrationNumberExistsUpdatesAsync(int id, string registrationNumber , CancellationToken ct);
-    Task<StudentResponseDto?> UpdateStudentASync(int id, CreateStudentRequest request , CancellationToken ct);
+    Task<bool?> UpdateStudentASync(int id, CreateStudentRequest request , CancellationToken ct);
     Task<bool> DeleteStudentAsync(int id, CancellationToken ct);
 }
 
@@ -105,10 +105,10 @@ public class StudentsService(TmsDbContext dbContext, ILogger<StudentsService> lo
       return await dbContext.Students.AnyAsync(s=>s.RegistrationNumber == registrationNumber && s.Id != id);
     }
 
-    public async Task<StudentResponseDto?> UpdateStudentASync(int id, CreateStudentRequest request, CancellationToken ct)
+    public async Task<bool?> UpdateStudentASync(int id, CreateStudentRequest request, CancellationToken ct)
     {
         var students = await dbContext.Students.FirstOrDefaultAsync(s=>s.Id == id);
-        if (students == null) return null;
+        if (students == null) return false;
 
         students.Name = request.Name;
         students.RegistrationNumber = request.RegistrationNumber;
@@ -116,7 +116,7 @@ public class StudentsService(TmsDbContext dbContext, ILogger<StudentsService> lo
 
         
          await dbContext.SaveChangesAsync(ct);
-         return await GetByIdAsync(students.Id, ct);
+         return true;
     }
 
     public async Task<bool> DeleteStudentAsync(int id, CancellationToken ct)
