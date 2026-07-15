@@ -8,7 +8,8 @@ using TmsApi.Services;
 namespace TmsApi.Controllers.V1;
 
 [ApiController]
-[Route("api/courses")] 
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/courses")] 
 [Tags("Courses")]
 [Produces("application/json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
