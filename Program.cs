@@ -5,13 +5,45 @@ using TmsApi.Data;
 using TmsApi.Entities;
 using TmsApi.Services;
 using TmsApi.Filters;
-
+using Asp.Versioning;
+using TmsApi.Middleware;
+using FluentValidation;
+using MediatR;
+using TmsApi.Behaviors;
+using TmsApi.Enrollments.Commands;
+using TmsApi.ExceptionHandlers;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers( options =>
 {
     options.Filters.Add<AuditLogFilter>();
 });
+
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+   options.ApiVersionReader = ApiVersionReader.Combine(
+    new UrlSegmentApiVersionReader(),
+    new HeaderApiVersionReader("X-Api-Version"));
+})
+.AddApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = true;
+});
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(typeof(EnrollStudentHandler).Assembly));
+
+    builder.Services.AddValidatorsFromAssembly(typeof(EnrollStudentValidator).Assembly);
+
+    builder.Services.AddTransient(typeof(IPipelineBehavior<,>),
+    typeof(LoggingBehavior<,>));
+
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>),
+    typeof(ValidationBehavior<,>));
+
 builder.Services.AddAuthentication("Training")
     .AddScheme<AuthenticationSchemeOptions, TrainingAuthHandler>("Training", null);
 builder.Services.AddAuthorization();
@@ -29,33 +61,51 @@ builder.Services.AddSingleton<EnrollmentWorker>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 builder.Services.AddScoped<IStudentsService, StudentsService>();
+builder.Services.AddScoped<IAssessmentService, AssessmentService>();
+builder.Services.AddScoped<ICertificateService, CertificateService>();
 builder.Services.AddOptions<PaymentOptions>()
     .BindConfiguration("Payments")
     .ValidateDataAnnotations()
     .ValidateOnStart();
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi("v1", options =>
+{
+    options.ShouldInclude = description => description.GroupName == "v1";
+});
+builder.Services.AddOpenApi("v2", options =>
+{
+    options.ShouldInclude = description => description.GroupName == "v2";
+});
 
 var app = builder.Build();
+app.UseExceptionHandler();
 
 // ── Environment toggle ───
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.MapScalarApiReference();
+    app.MapScalarApiReference(options =>
+    {
+        options.WithTitle("TMS API Reference")
+            .WithTheme(ScalarTheme.DeepSpace)
+            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+
+        options
+            .AddDocument("v1", "API Version 1.0")
+            .AddDocument("v2", "API Version 2.0");
+    });
 
     var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<TmsDbContext>();
     await DataSeeder.SeedAsync(context);
 }
-else
-{
-    // Production only — hide stack traces
-    app.UseExceptionHandler("/api/error");
-}
+
 
 // ── Middleware pipeline ────
 app.UseMiddleware<RequestLoggingMiddleware>();
+app.UseMiddleware<V1DeprecationMiddleware>();
 app.UseStatusCodePages();
 app.UseRouting();
 app.UseAuthentication();

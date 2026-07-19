@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TmsApi.Data;
@@ -11,9 +12,11 @@ using TmsApi.Data;
 namespace TmsApi.Migrations
 {
     [DbContext(typeof(TmsDbContext))]
-    partial class TmsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260714082255_AssessmentsAndCertificateUpdate")]
+    partial class AssessmentsAndCertificateUpdate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -63,18 +66,8 @@ namespace TmsApi.Migrations
                     b.Property<int>("CourseId")
                         .HasColumnType("integer");
 
-                    b.Property<bool>("IsRevoked")
-                        .HasColumnType("boolean");
-
                     b.Property<DateTime>("IssuedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("RevokedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("RevokedReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("SerialNumber")
                         .IsRequired()
@@ -92,8 +85,7 @@ namespace TmsApi.Migrations
                         .IsUnique();
 
                     b.HasIndex("StudentId", "CourseId")
-                        .IsUnique()
-                        .HasFilter("\"IsRevoked\" = false");
+                        .IsUnique();
 
                     b.ToTable("Certificates");
                 });

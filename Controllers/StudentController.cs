@@ -5,6 +5,9 @@ using TmsApi.Services;
 
 [ApiController]
 [Route("api/students")]
+[Tags("Students")]
+[Produces("application/json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public class StudentController : ControllerBase
 {
 
@@ -18,6 +21,10 @@ public class StudentController : ControllerBase
 
 
     [HttpGet("{id:int}", Name = nameof(GetStudentById))]
+    [ProducesResponseType(typeof(StudentResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointName("GetStudentById")]
+    [EndpointSummary("Get a student by ID")]
     public async Task<IActionResult> GetStudentById(int id, CancellationToken ct)
     {
         var students = await _studentService.GetByIdAsync(id, ct);
@@ -25,6 +32,9 @@ public class StudentController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(PagedResponse<StudentResponseDto>), StatusCodes.Status200OK)]
+    [EndpointName("GetStudents")]
+    [EndpointSummary("Get a list of all students")]
     public async Task<IActionResult> GetStudents(
         [FromQuery] PagedRequest request, CancellationToken ct)
     {
@@ -33,6 +43,11 @@ public class StudentController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(StudentResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [EndpointName("CreateStudent")]
+    [EndpointSummary("Create a new student")]
     public async Task<IActionResult> CreateStudent(CreateStudentRequest request, CancellationToken ct)
     {
         if (await _studentService.RegistrationNumberExistsAsync(request.RegistrationNumber, ct))
@@ -47,8 +62,12 @@ public class StudentController : ControllerBase
         return CreatedAtAction(nameof(GetStudentById), new { id = result.Id }, result);
     }
 
-[HttpPut("{id:int}", Name =nameof(GetStudentById))]
-
+[HttpPut("{id:int}", Name =nameof(UpdateStudentAsync))]
+[ProducesResponseType(StatusCodes.Status204NoContent)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+[EndpointName("UpdateStudent")]
+[EndpointSummary("Update a student")]
     public async Task<IActionResult> UpdateStudentAsync(int id , CreateStudentRequest request, CancellationToken ct)
     {
         if (await _studentService.RegistrationNumberExistsUpdatesAsync(id, request.RegistrationNumber, ct))
@@ -65,7 +84,11 @@ public class StudentController : ControllerBase
         return students is null ? NotFound() : NoContent();
     }
 
-[HttpDelete("{id:int}")]
+[HttpDelete("{id:int}", Name = nameof(DeleteStudentAsync))]
+[ProducesResponseType(StatusCodes.Status204NoContent)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+[EndpointName("DeleteStudent")]
+[EndpointSummary("Delete a student")]
 public async Task<IActionResult> DeleteStudentAsync(int id, CancellationToken ct)
     {
         var deleted = await _studentService.DeleteStudentAsync(id, ct);
